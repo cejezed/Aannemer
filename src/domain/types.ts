@@ -709,3 +709,108 @@ export type BudgetReport = {
   generatedAt: string;
 };
 
+// ============================================================================
+// ACTUALS & HOURS TRACKING (Supabase Integration)
+// ============================================================================
+
+export type ActualSource = "MANUAL" | "PERSONAL_COACH" | "IMPORT";
+
+export type CostType = "MATERIAL" | "EQUIPMENT" | "SUBCONTRACTOR" | "OTHER";
+
+export type SyncStatus = "SUCCESS" | "FAILED" | "IN_PROGRESS";
+
+/**
+ * ProjectActual: Geaggregeerde werkelijke kosten en uren per component per periode
+ * Gekoppeld aan Supabase voor live tracking
+ */
+export type ProjectActual = {
+  id: UUID;
+  projectId: UUID;
+  masterComponentId: UUID;
+  actualCostIncl: number;
+  actualHours: number;
+  periodStart: string; // ISO date
+  periodEnd: string; // ISO date
+  source: ActualSource;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * HourEntry: Gedetailleerde urenregistratie per medewerker
+ */
+export type HourEntry = {
+  id: UUID;
+  projectId: UUID;
+  masterComponentId: UUID;
+  workerName: string;
+  hours: number;
+  hourlyRate: number;
+  date: string; // ISO date
+  description?: string;
+  source: ActualSource;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * CostEntry: Gedetailleerde kostenregistratie (materiaal, apparatuur, etc)
+ */
+export type CostEntry = {
+  id: UUID;
+  projectId: UUID;
+  masterComponentId: UUID;
+  costType: CostType;
+  amountIncl: number;
+  description: string;
+  date: string; // ISO date
+  supplier?: string;
+  invoiceNumber?: string;
+  source: ActualSource;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * PersonalCoachSync: Status van synchronisatie met Personal Coach app
+ */
+export type PersonalCoachSync = {
+  id: UUID;
+  projectId: UUID;
+  personalCoachProjectId: UUID;
+  lastSyncAt?: string;
+  syncStatus: SyncStatus;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * ActualsReport: Gecombineerd rapport van budget vs actuals
+ */
+export type ActualsReport = {
+  projectId: UUID;
+  budgetReport: BudgetReport;
+  actualsByComponent: ComponentActuals[];
+  totalActualCostIncl: number;
+  totalActualHours: number;
+  lastUpdated: string;
+  dataSource: ActualSource;
+};
+
+/**
+ * ComponentActuals: Werkelijke kosten en uren per component
+ */
+export type ComponentActuals = {
+  masterComponentId: UUID;
+  masterComponentCode: string;
+  masterComponentName: string;
+  actualCostIncl: number;
+  actualHours: number;
+  entries: {
+    hourEntries: HourEntry[];
+    costEntries: CostEntry[];
+  };
+};
+

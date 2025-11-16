@@ -585,3 +585,89 @@ export const BudgetReportSchema = z.object({
   }),
   generatedAt: z.string().datetime(),
 });
+
+// ============================================================================
+// ACTUALS & HOURS TRACKING SCHEMAS
+// ============================================================================
+
+export const ActualSourceSchema = z.enum(["MANUAL", "PERSONAL_COACH", "IMPORT"]);
+
+export const CostTypeSchema = z.enum(["MATERIAL", "EQUIPMENT", "SUBCONTRACTOR", "OTHER"]);
+
+export const SyncStatusSchema = z.enum(["SUCCESS", "FAILED", "IN_PROGRESS"]);
+
+export const ProjectActualSchema = z.object({
+  id: UUIDSchema,
+  projectId: UUIDSchema,
+  masterComponentId: UUIDSchema,
+  actualCostIncl: z.number().nonnegative(),
+  actualHours: z.number().nonnegative(),
+  periodStart: z.string().datetime(),
+  periodEnd: z.string().datetime(),
+  source: ActualSourceSchema,
+  notes: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const HourEntrySchema = z.object({
+  id: UUIDSchema,
+  projectId: UUIDSchema,
+  masterComponentId: UUIDSchema,
+  workerName: z.string().min(1),
+  hours: z.number().positive(),
+  hourlyRate: z.number().nonnegative(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  description: z.string().optional(),
+  source: ActualSourceSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CostEntrySchema = z.object({
+  id: UUIDSchema,
+  projectId: UUIDSchema,
+  masterComponentId: UUIDSchema,
+  costType: CostTypeSchema,
+  amountIncl: z.number().nonnegative(),
+  description: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  supplier: z.string().optional(),
+  invoiceNumber: z.string().optional(),
+  source: ActualSourceSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const PersonalCoachSyncSchema = z.object({
+  id: UUIDSchema,
+  projectId: UUIDSchema,
+  personalCoachProjectId: UUIDSchema,
+  lastSyncAt: z.string().datetime().optional(),
+  syncStatus: SyncStatusSchema,
+  errorMessage: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const ComponentActualsSchema = z.object({
+  masterComponentId: UUIDSchema,
+  masterComponentCode: z.string(),
+  masterComponentName: z.string(),
+  actualCostIncl: z.number().nonnegative(),
+  actualHours: z.number().nonnegative(),
+  entries: z.object({
+    hourEntries: z.array(HourEntrySchema),
+    costEntries: z.array(CostEntrySchema),
+  }),
+});
+
+export const ActualsReportSchema = z.object({
+  projectId: UUIDSchema,
+  budgetReport: BudgetReportSchema,
+  actualsByComponent: z.array(ComponentActualsSchema),
+  totalActualCostIncl: z.number().nonnegative(),
+  totalActualHours: z.number().nonnegative(),
+  lastUpdated: z.string().datetime(),
+  dataSource: ActualSourceSchema,
+});
