@@ -1,69 +1,28 @@
 /**
- * API route voor revisies van een offerte
- * GET /api/projects/[projectId]/offers/[offerId]/revisions - lijst van alle revisies voor een offerte
+ * API route for offer revisions
+ * GET /api/projects/[projectId]/offers/[offerId]/revisions - List revisions for offer
  */
 
 import { NextResponse } from 'next/server';
-import {
-  loadMockData,
-  groupRevisionsByOffer,
-  groupLinesByRevision,
-  groupMappingsByRevision,
-} from '@/mocks';
+import { isSupabaseServerConfigured } from '@/lib/supabase/server';
+import { listRevisionsForOffer } from '@/data/offers';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ projectId: string; offerId: string }> }
 ) {
-  try {
-    const mockData = loadMockData();
-    const { projectId, offerId } = await params;
-
-    // Valideer project
-    if (mockData.project.id !== projectId) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      );
-    }
-
-    // Valideer offer
-    const offer = mockData.offers.find(o => o.id === offerId);
-    if (!offer) {
-      return NextResponse.json(
-        { error: 'Offer not found' },
-        { status: 404 }
-      );
-    }
-
-    // Groepeer data
-    const revisionsByOffer = groupRevisionsByOffer(mockData.revisions);
-    const linesByRevision = groupLinesByRevision(mockData.revisionLines);
-    const mappingsByRevision = groupMappingsByRevision(
-      mockData.revisionMappings,
-      mockData.revisionLines
+  if (!isSupabaseServerConfigured()) {
+    return NextResponse.json(
+      { error: 'Supabase not configured' },
+      { status: 503 }
     );
+  }
 
-    // Haal revisies voor deze offerte op
-    const revisions = revisionsByOffer.get(offerId) || [];
+  try {
+    const { offerId } = await params;
+    const revisions = await listRevisionsForOffer(offerId);
 
-    // Enrich revisies met line counts
-    const enrichedRevisions = revisions.map(revision => {
-      const lines = linesByRevision.get(revision.id) || [];
-      const mappings = mappingsByRevision.get(revision.id) || [];
-
-      return {
-        ...revision,
-        lineCount: lines.length,
-        mappedLineCount: mappings.length,
-      };
-    });
-
-    return NextResponse.json({
-      revisions: enrichedRevisions,
-      offerId,
-      offerName: offer.contractorId, // Could enrich further with contractor name if needed
-    });
+    return NextResponse.json({ revisions });
   } catch (error) {
     console.error('Error fetching revisions:', error);
     return NextResponse.json(
