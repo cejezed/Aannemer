@@ -52,6 +52,24 @@ export type Offer = {
   sourceTotalExcl?: number;   // zoals genoemd in brief/offerte
   sourceTotalIncl?: number;
   currency: "EUR";
+  isWinningOffer?: boolean;   // true als dit de winnende offerte is
+  createdAt: string;
+  updatedAt: string;
+};
+
+// ============================================================================
+// Offer Revisions
+// ============================================================================
+
+/**
+ * Een revisie van een offerte (v1 = contract, v2+  = wijzigingen)
+ * Elke revisie bevat een set OfferLines
+ */
+export type OfferRevision = {
+  id: UUID;
+  offerId: UUID;
+  revisionIndex: number;  // 1 = contract, 2, 3, ... = wijzigingen
+  label: string;          // "Contract", "Revisie 1 - Meerwerk kelder", etc.
   createdAt: string;
   updatedAt: string;
 };
@@ -105,6 +123,7 @@ export type CoverageStatus =
 export type OfferLine = {
   id: UUID;
   offerId: UUID;
+  revisionId?: UUID;      // NIEUW: koppeling naar revisie (optioneel voor backwards compatibility)
   rawText: string;        // originele regel uit offerte
   code?: string;          // 21.00.0000 etc., indien aanwezig
   description: string;
@@ -336,4 +355,75 @@ export type ValidationResult = {
   valid: boolean;
   errors: DomainError[];
   warnings: CalculationDiscrepancyWarning[];
+};
+
+// ============================================================================
+// Revision Diff Types
+// ============================================================================
+
+/**
+ * Change status voor een offertelijn in een revision diff
+ */
+export type RevisionLineChangeStatus =
+  | "UNCHANGED"   // regel is hetzelfde gebleven
+  | "ADDED"       // nieuwe regel in v2
+  | "REMOVED"     // regel verwijderd t.o.v. v1
+  | "CHANGED";    // regel is gewijzigd (bedrag of beschrijving)
+
+/**
+ * Verschil voor een individuele offertelijn tussen revisies
+ */
+export type RevisionDiffLine = {
+  masterComponentId?: UUID;
+  masterComponentName?: string;
+  lineV1?: OfferLine;      // null als ADDED
+  lineV2?: OfferLine;      // null als REMOVED
+  status: RevisionLineChangeStatus;
+  priceDelta?: number;     // verschil in priceIncl
+  descriptionChanged?: boolean;
+};
+
+/**
+ * Verschil per mastercomponent tussen revisies
+ */
+export type RevisionDiffComponent = {
+  masterComponentId: UUID;
+  masterComponentCode: string;
+  masterComponentName: string;
+  totalV1: number;         // totaal bedrag in revisie 1
+  totalV2: number;         // totaal bedrag in revisie 2
+  delta: number;           // v2 - v1
+  deltaPercentage: number; // (delta / v1) * 100
+  isSignificant: boolean;  // delta > bepaalde drempel
+};
+
+/**
+ * Complete diff tussen twee revisies
+ */
+export type RevisionDiff = {
+  fromRevisionId: UUID;
+  fromRevisionLabel: string;
+  toRevisionId: UUID;
+  toRevisionLabel: string;
+  offerId: UUID;
+
+  // Aggregated verschillen per component
+  componentDiffs: RevisionDiffComponent[];
+
+  // Line-level verschillen
+  lineDiffs: RevisionDiffLine[];
+
+  // Totalen
+  totalV1: number;
+  totalV2: number;
+  totalDelta: number;
+  totalDeltaPercentage: number;
+
+  // Statistieken
+  linesAdded: number;
+  linesRemoved: number;
+  linesChanged: number;
+  linesUnchanged: number;
+
+  generatedAt: string;
 };

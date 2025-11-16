@@ -60,11 +60,31 @@ export const OfferSchema = z.object({
   sourceTotalExcl: z.number().nonnegative().optional(),
   sourceTotalIncl: z.number().nonnegative().optional(),
   currency: z.literal("EUR"),
+  isWinningOffer: z.boolean().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 
 export const CreateOfferSchema = OfferSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================================================
+// Offer Revision schemas
+// ============================================================================
+
+export const OfferRevisionSchema = z.object({
+  id: UUIDSchema,
+  offerId: UUIDSchema,
+  revisionIndex: z.number().int().positive(),
+  label: z.string().min(1, "Revision label is verplicht"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CreateOfferRevisionSchema = OfferRevisionSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -113,6 +133,7 @@ export const CoverageStatusSchema = z.enum([
 export const OfferLineSchema = z.object({
   id: UUIDSchema,
   offerId: UUIDSchema,
+  revisionId: UUIDSchema.optional(),
   rawText: z.string(),
   code: z.string().optional(),
   description: z.string().min(1, "Beschrijving is verplicht"),
@@ -308,4 +329,55 @@ export const ValidationResultSchema = z.object({
   valid: z.boolean(),
   errors: z.array(DomainErrorSchema),
   warnings: z.array(CalculationDiscrepancyWarningSchema),
+});
+
+// ============================================================================
+// Revision Diff schemas
+// ============================================================================
+
+export const RevisionLineChangeStatusSchema = z.enum([
+  "UNCHANGED",
+  "ADDED",
+  "REMOVED",
+  "CHANGED"
+]);
+
+export const RevisionDiffLineSchema = z.object({
+  masterComponentId: UUIDSchema.optional(),
+  masterComponentName: z.string().optional(),
+  lineV1: OfferLineSchema.optional(),
+  lineV2: OfferLineSchema.optional(),
+  status: RevisionLineChangeStatusSchema,
+  priceDelta: z.number().optional(),
+  descriptionChanged: z.boolean().optional(),
+});
+
+export const RevisionDiffComponentSchema = z.object({
+  masterComponentId: UUIDSchema,
+  masterComponentCode: z.string(),
+  masterComponentName: z.string(),
+  totalV1: z.number().nonnegative(),
+  totalV2: z.number().nonnegative(),
+  delta: z.number(),
+  deltaPercentage: z.number(),
+  isSignificant: z.boolean(),
+});
+
+export const RevisionDiffSchema = z.object({
+  fromRevisionId: UUIDSchema,
+  fromRevisionLabel: z.string(),
+  toRevisionId: UUIDSchema,
+  toRevisionLabel: z.string(),
+  offerId: UUIDSchema,
+  componentDiffs: z.array(RevisionDiffComponentSchema),
+  lineDiffs: z.array(RevisionDiffLineSchema),
+  totalV1: z.number().nonnegative(),
+  totalV2: z.number().nonnegative(),
+  totalDelta: z.number(),
+  totalDeltaPercentage: z.number(),
+  linesAdded: z.number().int().nonnegative(),
+  linesRemoved: z.number().int().nonnegative(),
+  linesChanged: z.number().int().nonnegative(),
+  linesUnchanged: z.number().int().nonnegative(),
+  generatedAt: z.string().datetime(),
 });

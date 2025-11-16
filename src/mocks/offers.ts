@@ -55,6 +55,7 @@ export const offerA: Offer = {
   sourceTotalExcl: 385000,
   sourceTotalIncl: 465850, // incl 21% BTW
   currency: 'EUR',
+  isWinningOffer: true, // Deze offerte is gekozen
   createdAt: '2024-01-20T09:00:00Z',
   updatedAt: '2024-01-20T09:00:00Z',
 };
