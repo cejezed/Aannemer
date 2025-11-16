@@ -11,6 +11,13 @@ import type {
   LineMapping,
   MasterComponent,
   OfferRevision,
+  TechSpec,
+  TechSpecSection,
+  TechSpecMapping,
+  Subcontractor,
+  SubcontractOffer,
+  SubcontractOfferLine,
+  SubcontractLineMapping,
 } from '@/domain/types';
 
 import { mockMasterComponents } from './masterComponents';
@@ -42,6 +49,17 @@ import {
   revisionA1Mappings,
   revisionA2Mappings,
 } from './revisionMappings';
+import {
+  mockTechSpec,
+  mockTechSpecSections,
+  mockTechSpecMappings,
+} from './techspec';
+import {
+  mockSubcontractors,
+  mockSubcontractOffers,
+  mockSubcontractOfferLines,
+  mockSubcontractLineMappings,
+} from './subcontractors';
 
 export interface MockData {
   project: Project;
@@ -53,6 +71,13 @@ export interface MockData {
   revisions: OfferRevision[];
   revisionLines: OfferLine[];
   revisionMappings: LineMapping[];
+  techSpec: TechSpec;
+  techSpecSections: TechSpecSection[];
+  techSpecMappings: TechSpecMapping[];
+  subcontractors: Subcontractor[];
+  subcontractOffers: SubcontractOffer[];
+  subcontractOfferLines: SubcontractOfferLine[];
+  subcontractLineMappings: SubcontractLineMapping[];
 }
 
 /**
@@ -69,6 +94,13 @@ export function loadMockData(): MockData {
     revisions: mockRevisions,
     revisionLines: mockRevisionLines,
     revisionMappings: [...revisionA1Mappings, ...revisionA2Mappings],
+    techSpec: mockTechSpec,
+    techSpecSections: mockTechSpecSections,
+    techSpecMappings: mockTechSpecMappings,
+    subcontractors: mockSubcontractors,
+    subcontractOffers: mockSubcontractOffers,
+    subcontractOfferLines: mockSubcontractOfferLines,
+    subcontractLineMappings: mockSubcontractLineMappings,
   };
 }
 
@@ -201,4 +233,11 @@ export {
   revisionA2Lines,
   revisionA1Mappings,
   revisionA2Mappings,
+  mockTechSpec,
+  mockTechSpecSections,
+  mockTechSpecMappings,
+  mockSubcontractors,
+  mockSubcontractOffers,
+  mockSubcontractOfferLines,
+  mockSubcontractLineMappings,
 };

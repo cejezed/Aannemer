@@ -381,3 +381,148 @@ export const RevisionDiffSchema = z.object({
   linesUnchanged: z.number().int().nonnegative(),
   generatedAt: z.string().datetime(),
 });
+
+// ============================================================================
+// TechSpec schemas
+// ============================================================================
+
+export const RequirementTypeSchema = z.enum(["KOSTEN", "KWALITEIT", "PROCES"]);
+
+export const TechSpecSchema = z.object({
+  id: UUIDSchema,
+  projectId: UUIDSchema,
+  title: z.string().min(1),
+  version: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const TechSpecSectionSchema = z.object({
+  id: UUIDSchema,
+  techSpecId: UUIDSchema,
+  headingNumber: z.string(),
+  title: z.string().min(1),
+  body: z.string(),
+});
+
+export const TechSpecMappingSchema = z.object({
+  id: UUIDSchema,
+  sectionId: UUIDSchema,
+  masterComponentId: UUIDSchema,
+  requirementType: RequirementTypeSchema,
+});
+
+export const ComponentScopeStatusSchema = z.enum([
+  "VOLLEDIG_GEDEKT",
+  "ALLEEN_TEKST_GEEN_BEDRAG",
+  "ALLEEN_BEDRAG_GEEN_TEKST",
+  "ONBEKEND"
+]);
+
+export const ComponentScopeCoverageSchema = z.object({
+  masterComponentId: UUIDSchema,
+  masterComponentCode: z.string(),
+  masterComponentName: z.string(),
+  scopeStatus: ComponentScopeStatusSchema,
+  totalAmountIncl: z.number().nonnegative(),
+  fromMainOfferAmountIncl: z.number().nonnegative(),
+  fromSubcontractorsAmountIncl: z.number().nonnegative(),
+  requirementSections: z.array(TechSpecSectionSchema),
+});
+
+export const MissingCostItemSchema = z.object({
+  masterComponentId: UUIDSchema,
+  masterComponentCode: z.string(),
+  masterComponentName: z.string(),
+  sectionId: UUIDSchema,
+  title: z.string(),
+  headingNumber: z.string(),
+});
+
+export const UnscopedCostItemSchema = z.object({
+  masterComponentId: UUIDSchema,
+  masterComponentCode: z.string(),
+  masterComponentName: z.string(),
+  totalAmountIncl: z.number().nonnegative(),
+});
+
+export const SuspiciousCoverageItemSchema = z.object({
+  sectionId: UUIDSchema,
+  sectionTitle: z.string(),
+  headingNumber: z.string(),
+  masterComponentId: UUIDSchema,
+  masterComponentCode: z.string(),
+  masterComponentName: z.string(),
+  hasMainOfferCoverage: z.boolean(),
+  hasSubcontractCoverage: z.boolean(),
+  mainOfferAmountIncl: z.number().nonnegative(),
+  subcontractAmountIncl: z.number().nonnegative(),
+  coverageConfidence: z.number().min(0).max(1),
+  reason: z.string().optional(),
+});
+
+export const OfferScopeReportSchema = z.object({
+  offerId: UUIDSchema,
+  offerTitle: z.string(),
+  revisionId: UUIDSchema.optional(),
+  techSpecId: UUIDSchema,
+  techSpecTitle: z.string(),
+  components: z.array(ComponentScopeCoverageSchema),
+  missingCostItems: z.array(MissingCostItemSchema),
+  unscopedCostItems: z.array(UnscopedCostItemSchema),
+  suspiciousCoverageItems: z.array(SuspiciousCoverageItemSchema),
+  stats: z.object({
+    fullyCoveredCount: z.number().int().nonnegative(),
+    textOnlyCount: z.number().int().nonnegative(),
+    amountOnlyCount: z.number().int().nonnegative(),
+    unknownCount: z.number().int().nonnegative(),
+  }),
+  generatedAt: z.string().datetime(),
+});
+
+// ============================================================================
+// Subcontractor schemas
+// ============================================================================
+
+export const SubcontractorSchema = z.object({
+  id: UUIDSchema,
+  name: z.string().min(1),
+  discipline: z.string().optional(),
+  contactName: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+});
+
+export const SubcontractOfferSchema = z.object({
+  id: UUIDSchema,
+  projectId: UUIDSchema,
+  mainOfferId: UUIDSchema.optional(),
+  subcontractorId: UUIDSchema,
+  title: z.string().min(1),
+  sourceFileName: z.string().optional(),
+  sourceTotalIncl: z.number().nonnegative().optional(),
+  currency: z.literal("EUR"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const SubcontractOfferLineSchema = z.object({
+  id: UUIDSchema,
+  subcontractOfferId: UUIDSchema,
+  rawText: z.string(),
+  description: z.string().min(1),
+  priceIncl: z.number().optional(),
+  priceType: PriceTypeSchema,
+  code: z.string().optional(),
+  quantity: z.number().optional(),
+  unit: z.string().optional(),
+  chapterHint: z.string().optional(),
+});
+
+export const SubcontractLineMappingSchema = z.object({
+  id: UUIDSchema,
+  subcontractOfferLineId: UUIDSchema,
+  masterComponentId: UUIDSchema,
+  coverageStatus: CoverageStatusSchema,
+  confidence: z.number().min(0).max(1).optional(),
+});

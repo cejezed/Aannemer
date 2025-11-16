@@ -427,3 +427,211 @@ export type RevisionDiff = {
 
   generatedAt: string;
 };
+
+// ============================================================================
+// TechSpec (Technische Omschrijving) - Scope-bron
+// ============================================================================
+
+/**
+ * Technische omschrijving van het project
+ * Basis voor scope-checking: wat moet er volgens het bestek worden geleverd
+ */
+export type TechSpec = {
+  id: UUID;
+  projectId: UUID;
+  title: string;
+  version: string;          // bijv. "Definitief 2025-01-10"
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Type vereiste in de TechSpec
+ */
+export type RequirementType = "KOSTEN" | "KWALITEIT" | "PROCES";
+
+/**
+ * Een sectie/paragraaf uit de technische omschrijving
+ */
+export type TechSpecSection = {
+  id: UUID;
+  techSpecId: UUID;
+  headingNumber: string;    // "3", "5.4", "10.1"
+  title: string;            // "Grondwerk", "Kelder", "Aluminium buitenkozijnen"
+  body: string;             // volledige tekst van de paragraaf
+};
+
+/**
+ * Koppeling tussen TechSpec sectie en MasterComponent
+ */
+export type TechSpecMapping = {
+  id: UUID;
+  sectionId: UUID;
+  masterComponentId: UUID;
+  requirementType: RequirementType;
+};
+
+// ============================================================================
+// Scope Coverage Status
+// ============================================================================
+
+/**
+ * Status van scope-dekking voor een component
+ */
+export type ComponentScopeStatus =
+  | "VOLLEDIG_GEDEKT"           // TechSpec aanwezig + kostenpost(en) aanwezig
+  | "ALLEEN_TEKST_GEEN_BEDRAG"  // wel omschreven in TechSpec, geen post in (sub)offertes
+  | "ALLEEN_BEDRAG_GEEN_TEKST"  // wel post(en), geen TechSpec-section gekoppeld
+  | "ONBEKEND";                 // noch tekst, noch post (of niet in mapping betrokken)
+
+/**
+ * Scope-dekking voor één mastercomponent
+ */
+export type ComponentScopeCoverage = {
+  masterComponentId: UUID;
+  masterComponentCode: string;
+  masterComponentName: string;
+  scopeStatus: ComponentScopeStatus;
+
+  // Geaggregeerde bedragen (incl. sub-offers)
+  totalAmountIncl: number;
+  fromMainOfferAmountIncl: number;
+  fromSubcontractorsAmountIncl: number;
+
+  // Gekoppelde TechSpec secties
+  requirementSections: TechSpecSection[];
+};
+
+/**
+ * Item dat vereist is maar geen kosten heeft
+ */
+export type MissingCostItem = {
+  masterComponentId: UUID;
+  masterComponentCode: string;
+  masterComponentName: string;
+  sectionId: UUID;
+  title: string;
+  headingNumber: string;
+};
+
+/**
+ * Item met kosten maar geen TechSpec
+ */
+export type UnscopedCostItem = {
+  masterComponentId: UUID;
+  masterComponentCode: string;
+  masterComponentName: string;
+  totalAmountIncl: number;
+};
+
+/**
+ * Item met verdachte/lage dekking
+ */
+export type SuspiciousCoverageItem = {
+  sectionId: UUID;
+  sectionTitle: string;
+  headingNumber: string;
+  masterComponentId: UUID;
+  masterComponentCode: string;
+  masterComponentName: string;
+
+  // Mogelijk via sub-offers gedekt, maar met lage confidence/indicatie
+  hasMainOfferCoverage: boolean;
+  hasSubcontractCoverage: boolean;
+  mainOfferAmountIncl: number;
+  subcontractAmountIncl: number;
+  coverageConfidence: number; // 0..1
+  reason?: string;  // beschrijving waarom verdacht
+};
+
+/**
+ * Complete scope-rapport voor een offerte
+ */
+export type OfferScopeReport = {
+  offerId: UUID;
+  offerTitle: string;
+  revisionId?: UUID;
+  techSpecId: UUID;
+  techSpecTitle: string;
+
+  // Scope-dekking per component
+  components: ComponentScopeCoverage[];
+
+  // Vereist maar niet begroot
+  missingCostItems: MissingCostItem[];
+
+  // Begroot maar niet in scope
+  unscopedCostItems: UnscopedCostItem[];
+
+  // Verdacht gedekt (alleen stelpost, alleen subcontractor, etc.)
+  suspiciousCoverageItems: SuspiciousCoverageItem[];
+
+  // Statistieken
+  stats: {
+    fullyCoveredCount: number;
+    textOnlyCount: number;
+    amountOnlyCount: number;
+    unknownCount: number;
+  };
+
+  generatedAt: string;
+};
+
+// ============================================================================
+// Subcontractors & Onderaannemers-offertes
+// ============================================================================
+
+/**
+ * Onderaannemer
+ */
+export type Subcontractor = {
+  id: UUID;
+  name: string;
+  discipline?: string;    // bijv. "Elektro", "Installatie", "Gevel"
+  contactName?: string;
+  email?: string;
+  phone?: string;
+};
+
+/**
+ * Offerte van een onderaannemer
+ */
+export type SubcontractOffer = {
+  id: UUID;
+  projectId: UUID;
+  mainOfferId?: UUID;     // optioneel koppeling naar hoofd-offerte
+  subcontractorId: UUID;
+  title: string;
+  sourceFileName?: string;
+  sourceTotalIncl?: number;
+  currency: "EUR";
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Regel uit onderaannemer-offerte
+ */
+export type SubcontractOfferLine = {
+  id: UUID;
+  subcontractOfferId: UUID;
+  rawText: string;
+  description: string;
+  priceIncl?: number;
+  priceType: PriceType;
+  code?: string;
+  quantity?: number;
+  unit?: string;
+  chapterHint?: string;
+};
+
+/**
+ * Mapping van subcontract-regel naar mastercomponent
+ */
+export type SubcontractLineMapping = {
+  id: UUID;
+  subcontractOfferLineId: UUID;
+  masterComponentId: UUID;
+  coverageStatus: CoverageStatus;
+  confidence?: number;
+};
