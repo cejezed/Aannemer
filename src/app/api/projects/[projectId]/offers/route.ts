@@ -8,45 +8,20 @@ import { NextResponse } from 'next/server';
 import { isSupabaseServerConfigured } from '@/lib/supabase/server';
 import { listOffersForProject, createOffer } from '@/data/offers';
 import { listContractors, getContractor } from '@/data/contractors';
-import { loadMockData, groupLinesByOffer, createContractorMap } from '@/mocks';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
+  if (!isSupabaseServerConfigured()) {
+    return NextResponse.json(
+      { error: 'Supabase not configured. Zorg voor NEXT_PUBLIC_SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY in .env' },
+      { status: 503 }
+    );
+  }
+
   try {
     const { projectId } = await params;
-
-    if (!isSupabaseServerConfigured()) {
-      // Fallback to mock data
-      const mockData = loadMockData();
-
-      if (mockData.project.id !== projectId) {
-        return NextResponse.json(
-          { error: 'Project not found' },
-          { status: 404 }
-        );
-      }
-
-      const contractorMap = createContractorMap(mockData.contractors);
-      const offerLinesMap = groupLinesByOffer(mockData.offerLines);
-
-      const enrichedOffers = mockData.offers.map(offer => {
-        const contractor = contractorMap.get(offer.contractorId);
-        const lines = offerLinesMap.get(offer.id) || [];
-
-        return {
-          ...offer,
-          contractorName: contractor?.name || 'Unknown',
-          lineCount: lines.length,
-        };
-      });
-
-      return NextResponse.json({
-        offers: enrichedOffers,
-        contractors: mockData.contractors,
-      });
-    }
 
     // Use real Supabase data
     const offers = await listOffersForProject(projectId);
