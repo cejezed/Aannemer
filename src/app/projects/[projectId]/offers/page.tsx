@@ -147,8 +147,8 @@ export default function OffersPage() {
       setShowNewOfferForm(false);
       await fetchData();
 
-      // Navigate to the offer to add lines
-      router.push(`/projects/${projectId}/offers/${data.offer.id}/edit`);
+      // Navigate to upload page to add offer file
+      router.push(`/projects/${projectId}/offers/${data.offer.id}/upload`);
     } catch (error) {
       console.error('Error creating offer:', error);
       alert('Fout bij aanmaken offerte. Zorg dat Supabase is geconfigureerd');
@@ -409,10 +409,10 @@ export default function OffersPage() {
                 </div>
                 <div className="flex gap-2">
                   <Link
-                    href={`/projects/${projectId}/offers/${offer.id}/edit`}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    href={`/projects/${projectId}/offers/${offer.id}/upload`}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                   >
-                    Regels Toevoegen
+                    📄 Offerte Uploaden
                   </Link>
                 </div>
               </div>

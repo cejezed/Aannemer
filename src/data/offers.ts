@@ -544,3 +544,82 @@ export async function listUnmappedOfferLinesForProject(projectId: string): Promi
 
   return unmappedLines.map(rowToOfferLine);
 }
+
+// ============================================================================
+// Helper functions for offer upload workflow
+// ============================================================================
+
+/**
+ * Get or create the contract revision for an offer
+ * Contract revision is always index 1 with label "Contract"
+ */
+export async function getOrCreateContractRevision(offerId: string): Promise<OfferRevision> {
+  if (!supabaseServer) {
+    throw new Error('Supabase not configured');
+  }
+
+  // Try to find existing contract revision
+  const existingRevisions = await listRevisionsForOffer(offerId);
+  const contractRevision = existingRevisions.find(r => r.label === 'Contract');
+
+  if (contractRevision) {
+    return contractRevision;
+  }
+
+  // Create new contract revision
+  return await createRevision({
+    offerId,
+    label: 'Contract',
+  });
+}
+
+/**
+ * Bulk insert offer lines from parsed data
+ * Returns the number of lines created
+ */
+export async function bulkInsertOfferLines(
+  revisionId: string,
+  lines: Array<{
+    description: string;
+    priceIncl?: number;
+    priceType?: PriceType;
+    rawText?: string;
+    code?: string;
+    quantity?: number;
+    unit?: string;
+  }>
+): Promise<number> {
+  if (!supabaseServer) {
+    throw new Error('Supabase not configured');
+  }
+
+  if (lines.length === 0) {
+    return 0;
+  }
+
+  // Build insert records
+  const insertData: OfferLineInsert[] = lines.map((line, index) => ({
+    revision_id: revisionId,
+    position: index + 1,
+    raw_text: line.rawText || line.description,
+    description: line.description,
+    price_type: line.priceType || 'ONBEKEND',
+    total_price_incl: line.priceIncl !== undefined ? line.priceIncl : null,
+    code: line.code || null,
+    quantity: line.quantity !== undefined ? line.quantity : null,
+    unit: line.unit || null,
+    sort_order: index + 1,
+    is_allowance: line.priceType === 'STELPOST',
+  }));
+
+  const { data, error } = await (supabaseServer.from('offer_lines') as any)
+    .insert(insertData)
+    .select();
+
+  if (error) {
+    console.error('Bulk insert error:', error);
+    throw new Error(`Failed to insert offer lines: ${error.message}`);
+  }
+
+  return data ? data.length : 0;
+}

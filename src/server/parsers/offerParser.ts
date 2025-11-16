@@ -1,0 +1,132 @@
+/**
+ * Offer file parsers for PDF, DOCX, and XLSX
+ */
+
+import type { OfferParseResult } from './types';
+import { parseOfferWithLLM } from './llmParser';
+
+/**
+ * Parse PDF offer file
+ * Uses pdf-parse to extract text, then LLM for structuring
+ */
+export async function parsePdfOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
+  try {
+    // Dynamic import to avoid issues with ESM/CJS compatibility
+    const pdfParse = await import('pdf-parse');
+    // @ts-ignore - pdf-parse has complex ESM/CJS exports
+    const parser = pdfParse.default || pdfParse;
+    const data = await parser(fileBuffer);
+
+    const rawText = data.text;
+
+    if (!rawText || rawText.trim().length === 0) {
+      return {
+        lines: [],
+        warnings: ['PDF bevat geen leesbare tekst'],
+      };
+    }
+
+    return await parseOfferWithLLM(rawText, 'pdf');
+  } catch (error) {
+    console.error('PDF parse error:', error);
+    return {
+      lines: [],
+      warnings: [
+        `Fout bij lezen PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      ],
+    };
+  }
+}
+
+/**
+ * Parse DOCX offer file
+ * Uses mammoth to extract text, then LLM for structuring
+ */
+export async function parseDocxOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
+  try {
+    const mammoth = await import('mammoth');
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
+
+    const rawText = result.value;
+
+    if (!rawText || rawText.trim().length === 0) {
+      return {
+        lines: [],
+        warnings: ['DOCX bevat geen leesbare tekst'],
+      };
+    }
+
+    const warnings: string[] = [];
+    if (result.messages.length > 0) {
+      warnings.push(...result.messages.map(m => m.message));
+    }
+
+    const parseResult = await parseOfferWithLLM(rawText, 'docx');
+
+    return {
+      lines: parseResult.lines,
+      warnings: [...warnings, ...parseResult.warnings],
+    };
+  } catch (error) {
+    console.error('DOCX parse error:', error);
+    return {
+      lines: [],
+      warnings: [
+        `Fout bij lezen DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      ],
+    };
+  }
+}
+
+/**
+ * Parse XLSX offer file
+ * Uses xlsx to extract cells, then LLM for structuring
+ */
+export async function parseXlsxOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
+  try {
+    const XLSX = await import('xlsx');
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+
+    // Get first sheet
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return {
+        lines: [],
+        warnings: ['Excel bestand bevat geen sheets'],
+      };
+    }
+
+    const sheet = workbook.Sheets[sheetName];
+
+    // Convert to CSV for easier text processing
+    const csvText = XLSX.utils.sheet_to_csv(sheet);
+
+    if (!csvText || csvText.trim().length === 0) {
+      return {
+        lines: [],
+        warnings: ['Excel sheet bevat geen data'],
+      };
+    }
+
+    // Also try to convert to JSON for structured data
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    // Build a text representation including both CSV and some structure hints
+    let rawText = `Excel sheet: ${sheetName}\n\n`;
+    rawText += `CSV data:\n${csvText}\n\n`;
+
+    if (jsonData.length > 0) {
+      rawText += `Eerste 10 rijen:\n${JSON.stringify(jsonData.slice(0, 10), null, 2)}`;
+    }
+
+    return await parseOfferWithLLM(rawText, 'xlsx');
+  } catch (error) {
+    console.error('XLSX parse error:', error);
+    return {
+      lines: [],
+      warnings: [
+        `Fout bij lezen Excel: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      ],
+    };
+  }
+}
