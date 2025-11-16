@@ -4,60 +4,113 @@
  */
 
 import { NextResponse } from 'next/server';
+import { isSupabaseServerConfigured } from '@/lib/supabase/server';
 import {
-  loadMockData,
-  groupLinesByOffer,
-  groupMappingsByOffer,
-  createContractorMap,
-} from '@/mocks';
+  listOffersForProject,
+  listRevisionsForOffer,
+  listOfferLinesForRevision,
+  listMappingsForOfferLines,
+} from '@/data/offers';
+import { listContractors } from '@/data/contractors';
+import { listMasterComponents } from '@/data/masterComponents';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
+  if (!isSupabaseServerConfigured()) {
+    return NextResponse.json(
+      { error: 'Supabase not configured. Zorg voor NEXT_PUBLIC_SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY in .env' },
+      { status: 503 }
+    );
+  }
+
   try {
-    const mockData = loadMockData();
     const { projectId } = await params;
 
-    if (mockData.project.id !== projectId) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      );
+    // Fetch all data from Supabase
+    const [offers, contractors, masterComponents] = await Promise.all([
+      listOffersForProject(projectId),
+      listContractors(),
+      listMasterComponents(),
+    ]);
+
+    if (offers.length === 0) {
+      return NextResponse.json({
+        unclearLinesByOffer: [],
+        masterComponents: masterComponents.filter(mc => mc.isLeaf),
+        message: 'Nog geen offertes voor dit project. Voeg eerst offertes en regels toe.',
+      });
     }
 
-    const offerLinesMap = groupLinesByOffer(mockData.offerLines);
-    const lineMappingsMap = groupMappingsByOffer(mockData.lineMappings);
-    const contractorMap = createContractorMap(mockData.contractors);
+    // Build contractor map
+    const contractorMap = new Map(contractors.map(c => [c.id, c]));
 
-    // Verzamel onduidelijke regels per offerte
-    const unclearLinesByOffer = mockData.offers.map(offer => {
-      const contractor = contractorMap.get(offer.contractorId);
-      const offerLines = offerLinesMap.get(offer.id) || [];
-      const lineMappings = lineMappingsMap.get(offer.id) || [];
+    // Process each offer
+    const unclearLinesByOffer = await Promise.all(
+      offers.map(async (offer) => {
+        const contractor = contractorMap.get(offer.contractorId);
 
-      const mappedLineIds = new Set(lineMappings.map(m => m.offerLineId));
-      const unclearLines = offerLines.filter(line => !mappedLineIds.has(line.id));
+        // Get contract revision
+        const revisions = await listRevisionsForOffer(offer.id);
+        const contractRevision = revisions.find(r => r.label === 'Contract');
 
-      const totalUnclear = unclearLines.reduce(
-        (sum, line) => sum + (line.totalPriceIncl ?? 0),
-        0
-      );
+        if (!contractRevision) {
+          return {
+            offerId: offer.id,
+            contractorName: contractor?.name || 'Unknown',
+            unclearLines: [],
+            totalUnclear: 0,
+            totalUnclearPercentage: 0,
+          };
+        }
 
-      return {
-        offerId: offer.id,
-        contractorName: contractor?.name || 'Unknown',
-        unclearLines,
-        totalUnclear,
-        totalUnclearPercentage: offer.sourceTotalIncl
-          ? (totalUnclear / offer.sourceTotalIncl) * 100
-          : 0,
-      };
-    });
+        // Get all lines for this revision
+        const offerLines = await listOfferLinesForRevision(contractRevision.id);
+
+        if (offerLines.length === 0) {
+          return {
+            offerId: offer.id,
+            contractorName: contractor?.name || 'Unknown',
+            unclearLines: [],
+            totalUnclear: 0,
+            totalUnclearPercentage: 0,
+          };
+        }
+
+        // Get mappings for these lines
+        const lineIds = offerLines.map(l => l.id);
+        const mappings = await listMappingsForOfferLines(lineIds);
+
+        // Filter out lines that are already mapped (excluding ONDERDEEL_ONBEKEND)
+        const mappedLineIds = new Set(
+          mappings
+            .filter(m => m.coverageStatus !== 'ONDERDEEL_ONBEKEND')
+            .map(m => m.offerLineId)
+        );
+
+        const unclearLines = offerLines.filter(line => !mappedLineIds.has(line.id));
+
+        const totalUnclear = unclearLines.reduce(
+          (sum, line) => sum + (line.totalPriceIncl ?? 0),
+          0
+        );
+
+        return {
+          offerId: offer.id,
+          contractorName: contractor?.name || 'Unknown',
+          unclearLines,
+          totalUnclear,
+          totalUnclearPercentage: offer.sourceTotalIncl
+            ? (totalUnclear / offer.sourceTotalIncl) * 100
+            : 0,
+        };
+      })
+    );
 
     return NextResponse.json({
       unclearLinesByOffer,
-      masterComponents: mockData.masterComponents.filter(mc => mc.isLeaf),
+      masterComponents: masterComponents.filter(mc => mc.isLeaf),
     });
   } catch (error) {
     console.error('Error fetching unclear lines:', error);

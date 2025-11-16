@@ -65,10 +65,33 @@ export default function OnverdeeldPage({ params }: { params: Promise<{ projectId
     0
   );
 
-  const handleAssignComponent = (lineId: string, componentId: string) => {
-    // In a real app, this would make an API call to create the mapping
-    console.log(`Assign line ${lineId} to component ${componentId}`);
-    alert(`In productie zou deze regel nu gekoppeld worden aan component ${componentId}.\n\nVoor nu is dit een demo zonder persistentie.`);
+  const handleAssignComponent = async (lineId: string, componentId: string) => {
+    try {
+      const response = await fetch('/api/line-mappings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerLineId: lineId,
+          masterComponentId: componentId,
+          coverageStatus: 'INCLUSIEF',
+          assignedBy: 'MANUAL',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create mapping');
+      }
+
+      // Refetch data to update the list
+      const res = await fetch(`/api/projects/${projectId}/unclearlines`);
+      const data = await res.json();
+      setUnclearLinesByOffer(data.unclearLinesByOffer || []);
+
+      alert('Regel succesvol gekoppeld!');
+    } catch (error) {
+      console.error('Error creating mapping:', error);
+      alert('Fout bij koppelen regel. Zorg dat Supabase is geconfigureerd.');
+    }
   };
 
   return (

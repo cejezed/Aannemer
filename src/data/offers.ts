@@ -481,3 +481,66 @@ export async function deleteLineMapping(mappingId: string): Promise<void> {
     throw new Error(`Failed to delete line mapping: ${error.message}`);
   }
 }
+
+/**
+ * Get all unmapped offer lines for a project
+ * Returns lines that have no mappings or have coverage_status = 'ONDERDEEL_ONBEKEND'
+ */
+export async function listUnmappedOfferLinesForProject(projectId: string): Promise<OfferLine[]> {
+  if (!supabaseServer) {
+    console.warn('Supabase not configured');
+    return [];
+  }
+
+  // Get all offers for the project
+  const { data: offersData, error: offersError } = await (supabaseServer.from('offers') as any)
+    .select('id')
+    .eq('project_id', projectId);
+
+  if (offersError || !offersData || offersData.length === 0) {
+    return [];
+  }
+
+  const offers = offersData as Array<{ id: string }>;
+  const offerIds = offers.map(o => o.id);
+
+  // Get all revisions for these offers
+  const { data: revisionsData, error: revisionsError } = await (supabaseServer.from('offer_revisions') as any)
+    .select('id')
+    .in('offer_id', offerIds);
+
+  if (revisionsError || !revisionsData || revisionsData.length === 0) {
+    return [];
+  }
+
+  const revisions = revisionsData as Array<{ id: string }>;
+  const revisionIds = revisions.map(r => r.id);
+
+  // Get all offer lines for these revisions
+  const { data: linesData, error: linesError } = await (supabaseServer.from('offer_lines') as any)
+    .select('*')
+    .in('revision_id', revisionIds);
+
+  if (linesError || !linesData) {
+    return [];
+  }
+
+  const lines = linesData as OfferLineRow[];
+  const lineIds = lines.map(l => l.id);
+  const { data: mappingsData } = await (supabaseServer.from('line_mappings') as any)
+    .select('offer_line_id, coverage_status')
+    .in('offer_line_id', lineIds);
+
+  const mappings = mappingsData as Array<{ offer_line_id: string; coverage_status: string }> | null;
+
+  const mappedLineIds = new Set(
+    (mappings || [])
+      .filter(m => m.coverage_status !== 'ONDERDEEL_ONBEKEND')
+      .map(m => m.offer_line_id)
+  );
+
+  // Filter to only unmapped lines
+  const unmappedLines = lines.filter(line => !mappedLineIds.has(line.id));
+
+  return unmappedLines.map(rowToOfferLine);
+}
