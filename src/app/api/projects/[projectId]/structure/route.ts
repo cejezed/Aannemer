@@ -4,38 +4,65 @@
  */
 
 import { NextResponse } from 'next/server';
-import {
-  loadMockData,
-  groupLinesByOffer,
-  groupMappingsByOffer,
-} from '@/mocks';
+import { isSupabaseServerConfigured } from '@/lib/supabase/server';
+import { getProjectOfferSnapshot, getContractRevisions } from '@/data/projectSnapshot';
 import { aggregateByMasterComponent } from '@/domain/aggregateByMaster';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
+  if (!isSupabaseServerConfigured()) {
+    return NextResponse.json(
+      { error: 'Supabase not configured. Zorg voor NEXT_PUBLIC_SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY in .env' },
+      { status: 503 }
+    );
+  }
+
   try {
-    const mockData = loadMockData();
     const { projectId } = await params;
 
-    if (mockData.project.id !== projectId) {
+    // Get complete project snapshot from Supabase
+    const snapshot = await getProjectOfferSnapshot(projectId);
+
+    if (!snapshot) {
       return NextResponse.json(
         { error: 'Project not found' },
         { status: 404 }
       );
     }
 
-    const offerLinesMap = groupLinesByOffer(mockData.offerLines);
-    const lineMappingsMap = groupMappingsByOffer(mockData.lineMappings);
+    if (snapshot.offers.length === 0) {
+      return NextResponse.json({
+        masterComponents: snapshot.masterComponents,
+        aggregationsByOffer: [],
+        offers: [],
+        message: 'Nog geen offertes voor dit project. Voeg eerst offertes en regels toe.',
+      });
+    }
+
+    // Get contract revisions for all offers
+    const contractRevisions = getContractRevisions(snapshot);
 
     // Aggregeer per offerte
-    const aggregationsByOffer = mockData.offers.map(offer => {
-      const offerLines = offerLinesMap.get(offer.id) || [];
-      const lineMappings = lineMappingsMap.get(offer.id) || [];
+    const aggregationsByOffer = snapshot.offers.map(offer => {
+      const revision = contractRevisions.get(offer.id);
+
+      if (!revision) {
+        return {
+          offerId: offer.id,
+          aggregations: [],
+        };
+      }
+
+      const offerLines = snapshot.offerLines.get(revision.id) || [];
+
+      // Filter mappings for this offer's lines
+      const lineIds = new Set(offerLines.map(l => l.id));
+      const lineMappings = snapshot.lineMappings.filter(m => lineIds.has(m.offerLineId));
 
       const aggregations = aggregateByMasterComponent(
-        mockData.masterComponents,
+        snapshot.masterComponents,
         offerLines,
         lineMappings,
         offer.id
@@ -48,9 +75,9 @@ export async function GET(
     });
 
     return NextResponse.json({
-      masterComponents: mockData.masterComponents,
+      masterComponents: snapshot.masterComponents,
       aggregationsByOffer,
-      offers: mockData.offers,
+      offers: snapshot.offers,
     });
   } catch (error) {
     console.error('Error fetching structure:', error);
