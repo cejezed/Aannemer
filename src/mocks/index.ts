@@ -10,6 +10,7 @@ import type {
   OfferLine,
   LineMapping,
   MasterComponent,
+  OfferRevision,
 } from '@/domain/types';
 
 import { mockMasterComponents } from './masterComponents';
@@ -29,6 +30,18 @@ import {
   offerCMappings,
   allMockMappings,
 } from './lineMappings';
+import {
+  mockRevisions,
+  mockRevisionLines,
+  revisionA1,
+  revisionA2,
+  revisionA1Lines,
+  revisionA2Lines,
+} from './revisions';
+import {
+  revisionA1Mappings,
+  revisionA2Mappings,
+} from './revisionMappings';
 
 export interface MockData {
   project: Project;
@@ -37,6 +50,9 @@ export interface MockData {
   offerLines: OfferLine[];
   lineMappings: LineMapping[];
   masterComponents: MasterComponent[];
+  revisions: OfferRevision[];
+  revisionLines: OfferLine[];
+  revisionMappings: LineMapping[];
 }
 
 /**
@@ -50,6 +66,9 @@ export function loadMockData(): MockData {
     offerLines: [...offerALines, ...offerBLines, ...offerCLines],
     lineMappings: allMockMappings,
     masterComponents: mockMasterComponents,
+    revisions: mockRevisions,
+    revisionLines: mockRevisionLines,
+    revisionMappings: [...revisionA1Mappings, ...revisionA2Mappings],
   };
 }
 
@@ -99,6 +118,67 @@ export function createContractorMap(contractors: Contractor[]): Map<string, Cont
   return new Map(contractors.map(c => [c.id, c]));
 }
 
+/**
+ * Helper: Groepeer revisions per offerte
+ */
+export function groupRevisionsByOffer(revisions: OfferRevision[]): Map<string, OfferRevision[]> {
+  const map = new Map<string, OfferRevision[]>();
+
+  for (const revision of revisions) {
+    const revisions = map.get(revision.offerId) || [];
+    revisions.push(revision);
+    map.set(revision.offerId, revisions);
+  }
+
+  // Sorteer per offerte op revisionIndex
+  for (const [offerId, revs] of map) {
+    revs.sort((a, b) => a.revisionIndex - b.revisionIndex);
+    map.set(offerId, revs);
+  }
+
+  return map;
+}
+
+/**
+ * Helper: Groepeer revision lines per revision
+ */
+export function groupLinesByRevision(revisionLines: OfferLine[]): Map<string, OfferLine[]> {
+  const map = new Map<string, OfferLine[]>();
+
+  for (const line of revisionLines) {
+    if (line.revisionId) {
+      const lines = map.get(line.revisionId) || [];
+      lines.push(line);
+      map.set(line.revisionId, lines);
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Helper: Groepeer revision mappings per revision
+ */
+export function groupMappingsByRevision(
+  revisionMappings: LineMapping[],
+  revisionLines: OfferLine[]
+): Map<string, LineMapping[]> {
+  const map = new Map<string, LineMapping[]>();
+
+  for (const mapping of revisionMappings) {
+    // Zoek de revisionId via de offerLine
+    const line = revisionLines.find(l => l.id === mapping.offerLineId);
+
+    if (line?.revisionId) {
+      const mappings = map.get(line.revisionId) || [];
+      mappings.push(mapping);
+      map.set(line.revisionId, mappings);
+    }
+  }
+
+  return map;
+}
+
 // Re-export specifieke mock data voor directe imports
 export {
   mockProject,
@@ -113,4 +193,12 @@ export {
   offerC,
   offerCLines,
   offerCMappings,
+  mockRevisions,
+  mockRevisionLines,
+  revisionA1,
+  revisionA2,
+  revisionA1Lines,
+  revisionA2Lines,
+  revisionA1Mappings,
+  revisionA2Mappings,
 };
