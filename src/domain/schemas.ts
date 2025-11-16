@@ -526,3 +526,62 @@ export const SubcontractLineMappingSchema = z.object({
   coverageStatus: CoverageStatusSchema,
   confidence: z.number().min(0).max(1).optional(),
 });
+
+// ============================================================================
+// Budget schemas
+// ============================================================================
+
+export const BudgetStatusSchema = z.enum([
+  "WITHIN_BUDGET",
+  "APPROACHING_LIMIT",
+  "OVER_BUDGET"
+]);
+
+export const ProjectBudgetSchema = z.object({
+  id: UUIDSchema,
+  projectId: UUIDSchema,
+  name: z.string().min(1),
+  totalBudgetIncl: z.number().nonnegative(),
+  currency: z.literal("EUR"),
+  isBaseline: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const ComponentBudgetSchema = z.object({
+  id: UUIDSchema,
+  projectBudgetId: UUIDSchema,
+  masterComponentId: UUIDSchema,
+  budgetAmountIncl: z.number().nonnegative(),
+  notes: z.string().optional(),
+});
+
+export const BudgetVarianceSchema = z.object({
+  masterComponentId: UUIDSchema,
+  masterComponentCode: z.string(),
+  masterComponentName: z.string(),
+  budgetAmountIncl: z.number().nonnegative(),
+  actualAmountIncl: z.number().nonnegative(),
+  variance: z.number(),
+  variancePercentage: z.number(),
+  status: BudgetStatusSchema,
+});
+
+export const BudgetReportSchema = z.object({
+  projectBudgetId: UUIDSchema,
+  projectBudgetName: z.string(),
+  offerId: UUIDSchema.optional(),
+  offerTitle: z.string().optional(),
+  totalBudgetIncl: z.number().nonnegative(),
+  totalActualIncl: z.number().nonnegative(),
+  totalVariance: z.number(),
+  totalVariancePercentage: z.number(),
+  overallStatus: BudgetStatusSchema,
+  componentVariances: z.array(BudgetVarianceSchema),
+  stats: z.object({
+    componentsWithinBudget: z.number().int().nonnegative(),
+    componentsApproachingLimit: z.number().int().nonnegative(),
+    componentsOverBudget: z.number().int().nonnegative(),
+  }),
+  generatedAt: z.string().datetime(),
+});

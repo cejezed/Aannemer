@@ -18,6 +18,8 @@ import type {
   SubcontractOffer,
   SubcontractOfferLine,
   SubcontractLineMapping,
+  ProjectBudget,
+  ComponentBudget,
 } from '@/domain/types';
 
 import { mockMasterComponents } from './masterComponents';
@@ -60,6 +62,14 @@ import {
   mockSubcontractOfferLines,
   mockSubcontractLineMappings,
 } from './subcontractors';
+import {
+  mockProjectBudgets,
+  mockAllComponentBudgets,
+  mockInternalBudget,
+  mockContractBudget,
+  mockInternalComponentBudgets,
+  mockContractComponentBudgets,
+} from './budgets';
 
 export interface MockData {
   project: Project;
@@ -78,6 +88,8 @@ export interface MockData {
   subcontractOffers: SubcontractOffer[];
   subcontractOfferLines: SubcontractOfferLine[];
   subcontractLineMappings: SubcontractLineMapping[];
+  projectBudgets: ProjectBudget[];
+  componentBudgets: ComponentBudget[];
 }
 
 /**
@@ -101,6 +113,8 @@ export function loadMockData(): MockData {
     subcontractOffers: mockSubcontractOffers,
     subcontractOfferLines: mockSubcontractOfferLines,
     subcontractLineMappings: mockSubcontractLineMappings,
+    projectBudgets: mockProjectBudgets,
+    componentBudgets: mockAllComponentBudgets,
   };
 }
 
@@ -240,4 +254,10 @@ export {
   mockSubcontractOffers,
   mockSubcontractOfferLines,
   mockSubcontractLineMappings,
+  mockProjectBudgets,
+  mockAllComponentBudgets,
+  mockInternalBudget,
+  mockContractBudget,
+  mockInternalComponentBudgets,
+  mockContractComponentBudgets,
 };

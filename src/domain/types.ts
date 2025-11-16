@@ -635,3 +635,77 @@ export type SubcontractLineMapping = {
   coverageStatus: CoverageStatus;
   confidence?: number;
 };
+
+// ============================================================================
+// Budgets & Begrotingen
+// ============================================================================
+
+/**
+ * Budget status - hoe gaat het met het budget?
+ */
+export type BudgetStatus =
+  | "WITHIN_BUDGET"      // Binnen budget (< 90% gebruikt)
+  | "APPROACHING_LIMIT"  // Bijna op (90-100% gebruikt)
+  | "OVER_BUDGET";       // Over budget (> 100%)
+
+/**
+ * Hoofdbegroting voor het hele project
+ */
+export type ProjectBudget = {
+  id: UUID;
+  projectId: UUID;
+  name: string;           // "Interne begroting" of "Contractbegroting De Vries"
+  totalBudgetIncl: number;
+  currency: "EUR";
+  isBaseline: boolean;    // true = dit is de hoofdbegroting (bijv. interne begroting)
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Begroting per bouwonderdeel
+ */
+export type ComponentBudget = {
+  id: UUID;
+  projectBudgetId: UUID;
+  masterComponentId: UUID;
+  budgetAmountIncl: number;
+  notes?: string;
+};
+
+/**
+ * Vergelijking tussen begroting en werkelijke kosten
+ */
+export type BudgetVariance = {
+  masterComponentId: UUID;
+  masterComponentCode: string;
+  masterComponentName: string;
+  budgetAmountIncl: number;
+  actualAmountIncl: number;
+  variance: number;           // actual - budget (negatief = onder budget)
+  variancePercentage: number; // (variance / budget) * 100
+  status: BudgetStatus;
+};
+
+/**
+ * Compleet budget rapport
+ */
+export type BudgetReport = {
+  projectBudgetId: UUID;
+  projectBudgetName: string;
+  offerId?: UUID;          // Optioneel: vergelijk met specifieke offerte
+  offerTitle?: string;
+  totalBudgetIncl: number;
+  totalActualIncl: number;
+  totalVariance: number;
+  totalVariancePercentage: number;
+  overallStatus: BudgetStatus;
+  componentVariances: BudgetVariance[];
+  stats: {
+    componentsWithinBudget: number;
+    componentsApproachingLimit: number;
+    componentsOverBudget: number;
+  };
+  generatedAt: string;
+};
+

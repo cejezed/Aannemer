@@ -108,6 +108,12 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
             TechSpec / Scope-check
           </Link>
           <Link
+            href={`/projects/${projectId}/begrotingen`}
+            className="px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 whitespace-nowrap"
+          >
+            Begrotingen
+          </Link>
+          <Link
             href={`/projects/${projectId}/samenvatting`}
             className="px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 whitespace-nowrap"
           >
