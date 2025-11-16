@@ -296,7 +296,7 @@ function collectUnclearBuckets(
     const unclearLines = offerLines.filter(line => !mappedLineIds.has(line.id));
 
     const unclearTotal = unclearLines.reduce(
-      (sum, line) => sum + (line.priceIncl ?? 0),
+      (sum, line) => sum + (line.totalPriceIncl ?? 0),
       0
     );
 
@@ -312,7 +312,7 @@ function collectUnclearBuckets(
         lines: unclearLines.map(line => ({
           id: line.id,
           description: line.description,
-          amount: line.priceIncl ?? 0,
+          amount: line.totalPriceIncl ?? 0,
           // suggestedComponents kan later door AI worden ingevuld
         })),
       });

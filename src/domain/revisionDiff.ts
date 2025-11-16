@@ -50,8 +50,8 @@ export function generateRevisionDiff(
   );
 
   // 3. Bereken totalen
-  const totalV1 = linesV1.reduce((sum, line) => sum + (line.priceIncl ?? 0), 0);
-  const totalV2 = linesV2.reduce((sum, line) => sum + (line.priceIncl ?? 0), 0);
+  const totalV1 = linesV1.reduce((sum, line) => sum + (line.totalPriceIncl ?? 0), 0);
+  const totalV2 = linesV2.reduce((sum, line) => sum + (line.totalPriceIncl ?? 0), 0);
   const totalDelta = totalV2 - totalV1;
   const totalDeltaPercentage = totalV1 > 0 ? (totalDelta / totalV1) * 100 : 0;
 
@@ -197,7 +197,7 @@ function compareRevisionLines(
       matchedV2Ids.add(lineV2.id);
 
       const status = determineLineChangeStatus(lineV1, lineV2);
-      const priceDelta = (lineV2.priceIncl ?? 0) - (lineV1.priceIncl ?? 0);
+      const priceDelta = (lineV2.totalPriceIncl ?? 0) - (lineV1.totalPriceIncl ?? 0);
       const descriptionChanged = lineV1.description !== lineV2.description;
 
       lineDiffs.push({
@@ -217,7 +217,7 @@ function compareRevisionLines(
         lineV1,
         lineV2: undefined,
         status: 'REMOVED',
-        priceDelta: lineV1.priceIncl ? -lineV1.priceIncl : undefined,
+        priceDelta: lineV1.totalPriceIncl ? -lineV1.totalPriceIncl : undefined,
       });
     }
   }
@@ -235,7 +235,7 @@ function compareRevisionLines(
           lineV1: undefined,
           lineV2,
           status: 'ADDED',
-          priceDelta: lineV2.priceIncl ?? undefined,
+          priceDelta: lineV2.totalPriceIncl ?? undefined,
         });
       }
     }
@@ -275,7 +275,7 @@ function determineLineChangeStatus(
   lineV2: OfferLine
 ): RevisionLineChangeStatus {
   // Check of prijs is veranderd (met kleine tolerantie voor floating point)
-  const priceChanged = Math.abs((lineV2.priceIncl ?? 0) - (lineV1.priceIncl ?? 0)) > 0.01;
+  const priceChanged = Math.abs((lineV2.totalPriceIncl ?? 0) - (lineV1.totalPriceIncl ?? 0)) > 0.01;
 
   // Check of description is veranderd
   const descriptionChanged = lineV1.description !== lineV2.description;

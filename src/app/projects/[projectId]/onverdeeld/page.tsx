@@ -211,7 +211,7 @@ export default function OnverdeeldPage({ params }: { params: Promise<{ projectId
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                            {line.priceIncl !== undefined ? formatCurrency(line.priceIncl) : '-'}
+                            {line.totalPriceIncl !== undefined ? formatCurrency(line.totalPriceIncl) : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge

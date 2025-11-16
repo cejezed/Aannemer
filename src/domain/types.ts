@@ -116,6 +116,15 @@ export type CoverageStatus =
   | "ONDERDEEL_ONBEKEND" // we weten nog niet bij welk mastercomponent dit hoort
   | "BUITEN_SCOPE";      // bewust buiten de scope geplaatst
 
+/**
+ * Hoe een mapping is toegewezen
+ */
+export type AssignedBy =
+  | "AI"                 // automatisch door AI
+  | "ARCHITECT"          // door architect/professional
+  | "SYSTEM"             // automatisch door systeem
+  | "MANUAL";            // handmatig door gebruiker
+
 // ============================================================================
 // Offer Lines
 // ============================================================================
@@ -124,16 +133,27 @@ export type OfferLine = {
   id: UUID;
   offerId: UUID;
   revisionId?: UUID;      // NIEUW: koppeling naar revisie (optioneel voor backwards compatibility)
-  rawText: string;        // originele regel uit offerte
+  position?: number;       // positie in de offerte (kan verschillen van sortOrder bij herordening)
+  rawText?: string;       // originele regel uit offerte
   code?: string;          // 21.00.0000 etc., indien aanwezig
   description: string;
   quantity?: number;
   unit?: string;
+  // New price fields (preferred)
+  pricePerUnitExcl?: number;
+  pricePerUnitIncl?: number;
+  totalPriceExcl?: number;
+  totalPriceIncl?: number;
+  // Legacy price fields (for backwards compatibility with mocks/schemas)
   priceExcl?: number;
   priceIncl?: number;
   priceType: PriceType;
+  isAllowance?: boolean;   // is dit een stelpost
+  clarification?: string; // toelichting bij deze regel
   chapterHint?: string;   // ruwe hint uit parser/AI
   sortOrder: number;      // volgorde in offerte
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 // ============================================================================
@@ -148,6 +168,7 @@ export type LineMapping = {
   offerLineId: UUID;
   masterComponentId: UUID;
   coverageStatus: CoverageStatus;
+  assignedBy?: AssignedBy;  // Hoe de mapping is toegewezen
   confidence?: number;    // 0..1, optioneel voor AI-suggesties
   createdAt: string;
   updatedAt: string;

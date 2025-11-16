@@ -192,11 +192,11 @@ function extractExplicitOverhead(
 
   // Bereken overhead totaal
   const akTotal = overheadInfo.akLines.reduce(
-    (sum, line) => sum + (line.priceIncl ?? 0),
+    (sum, line) => sum + (line.totalPriceIncl ?? 0),
     0
   );
   const wrTotal = overheadInfo.wrLines.reduce(
-    (sum, line) => sum + (line.priceIncl ?? 0),
+    (sum, line) => sum + (line.totalPriceIncl ?? 0),
     0
   );
 
@@ -288,9 +288,9 @@ function mapLinesToComponents(
   // Som regels per component
   for (const mapping of lineMappings) {
     const line = lineMap.get(mapping.offerLineId);
-    if (line && line.priceIncl !== undefined) {
+    if (line && line.totalPriceIncl !== undefined) {
       const current = componentCosts[mapping.masterComponentId] || 0;
-      componentCosts[mapping.masterComponentId] = current + line.priceIncl;
+      componentCosts[mapping.masterComponentId] = current + line.totalPriceIncl;
     }
   }
 

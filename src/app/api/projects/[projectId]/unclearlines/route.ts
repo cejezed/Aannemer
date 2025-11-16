@@ -40,7 +40,7 @@ export async function GET(
       const unclearLines = offerLines.filter(line => !mappedLineIds.has(line.id));
 
       const totalUnclear = unclearLines.reduce(
-        (sum, line) => sum + (line.priceIncl ?? 0),
+        (sum, line) => sum + (line.totalPriceIncl ?? 0),
         0
       );
 

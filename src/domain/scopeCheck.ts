@@ -119,7 +119,7 @@ export function checkOfferCompletenessAgainstTechSpec(
 
     // Bereken bedragen
     const fromMainOfferAmountIncl = mainLines.reduce(
-      (sum, line) => sum + (line.priceIncl ?? 0),
+      (sum, line) => sum + (line.totalPriceIncl ?? 0),
       0
     );
     const fromSubcontractorsAmountIncl = subLines.reduce(

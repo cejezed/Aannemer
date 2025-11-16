@@ -21,11 +21,11 @@ export function calculateOfferTotals(offerLines: OfferLine[]): {
   let totalIncl = 0;
 
   for (const line of offerLines) {
-    if (line.priceExcl !== undefined) {
-      totalExcl += line.priceExcl;
+    if (line.totalPriceExcl !== undefined) {
+      totalExcl += line.totalPriceExcl;
     }
-    if (line.priceIncl !== undefined) {
-      totalIncl += line.priceIncl;
+    if (line.totalPriceIncl !== undefined) {
+      totalIncl += line.totalPriceIncl;
     }
   }
 
@@ -50,7 +50,7 @@ export function calculateOfferTotalsByType(offerLines: OfferLine[]): {
   let totalOtherIncl = 0;
 
   for (const line of offerLines) {
-    const amount = line.priceIncl ?? 0;
+    const amount = line.totalPriceIncl ?? 0;
 
     switch (line.priceType) {
       case 'VAST':

@@ -45,7 +45,7 @@ export function generateAllowanceProfile(
 
   // Bereken totaal stelpost bedrag
   const totalAllowance = stelpostLines.reduce(
-    (sum, line) => sum + (line.priceIncl ?? 0),
+    (sum, line) => sum + (line.totalPriceIncl ?? 0),
     0
   );
 
@@ -60,7 +60,7 @@ export function generateAllowanceProfile(
     const component = componentMap.get(componentId);
     if (!component) continue;
 
-    const amount = lines.reduce((sum, line) => sum + (line.priceIncl ?? 0), 0);
+    const amount = lines.reduce((sum, line) => sum + (line.totalPriceIncl ?? 0), 0);
     const percentage = offerTotal > 0 ? (amount / offerTotal) * 100 : 0;
 
     const detail: AllowanceDetail = {
@@ -73,7 +73,7 @@ export function generateAllowanceProfile(
       lines: lines.map(line => ({
         id: line.id,
         description: line.description,
-        amount: line.priceIncl ?? 0,
+        amount: line.totalPriceIncl ?? 0,
       })),
     };
 

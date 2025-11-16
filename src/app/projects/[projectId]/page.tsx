@@ -78,6 +78,12 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
         {/* Navigation */}
         <div className="mb-8 flex gap-4 overflow-x-auto pb-2">
           <Link
+            href={`/projects/${projectId}/offers`}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap font-semibold"
+          >
+            📝 Offertes Beheren
+          </Link>
+          <Link
             href={`/projects/${projectId}/structure`}
             className="px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 whitespace-nowrap"
           >

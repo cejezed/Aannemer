@@ -56,7 +56,7 @@ export function generateBudgetReport(
       const currentAmount = actualCostsByComponent.get(mapping.masterComponentId) || 0;
       actualCostsByComponent.set(
         mapping.masterComponentId,
-        currentAmount + (line.priceIncl ?? 0)
+        currentAmount + (line.totalPriceIncl ?? 0)
       );
     }
   }

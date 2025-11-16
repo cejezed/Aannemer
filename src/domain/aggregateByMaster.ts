@@ -72,8 +72,8 @@ function aggregateLinesForComponent(
   let totalIndicatieIncl = 0;
 
   for (const line of lines) {
-    const excl = line.priceExcl ?? 0;
-    const incl = line.priceIncl ?? 0;
+    const excl = line.totalPriceExcl ?? 0;
+    const incl = line.totalPriceIncl ?? 0;
 
     switch (line.priceType) {
       case 'VAST':
