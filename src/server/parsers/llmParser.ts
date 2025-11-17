@@ -1,12 +1,12 @@
 /**
- * LLM-based offer parsing using Claude
+ * LLM-based offer parsing using OpenAI GPT-4
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import type { ParsedOfferLineCandidate, OfferParseResult } from './types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 const PARSING_PROMPT = `Je bent een AI assistent die bouwoffertes analyseert. Je krijgt de ruwe tekst uit een offertebestand.
@@ -61,18 +61,18 @@ export async function parseOfferWithLLM(
   rawText: string,
   fileType: 'pdf' | 'docx' | 'xlsx'
 ): Promise<OfferParseResult> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY not set');
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY not set');
     return {
       lines: [],
-      warnings: ['LLM parsing niet beschikbaar: ANTHROPIC_API_KEY niet geconfigureerd'],
+      warnings: ['LLM parsing niet beschikbaar: OPENAI_API_KEY niet geconfigureerd'],
     };
   }
 
   const warnings: string[] = [];
 
   try {
-    // Limit text length for API (roughly 100k tokens max)
+    // Limit text length for API (roughly 100k tokens max for GPT-4)
     const maxChars = 300000;
     let textToAnalyze = rawText;
     if (rawText.length > maxChars) {
@@ -80,19 +80,23 @@ export async function parseOfferWithLLM(
       warnings.push(`Bestand was te groot, alleen eerste ${maxChars} karakters geanalyseerd`);
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 8000,
-      temperature: 0,
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4-turbo-preview',
       messages: [
         {
+          role: 'system',
+          content: PARSING_PROMPT,
+        },
+        {
           role: 'user',
-          content: `${PARSING_PROMPT}\n\nOfferte tekst (${fileType}):\n\n${textToAnalyze}`,
+          content: `Offerte tekst (${fileType}):\n\n${textToAnalyze}`,
         },
       ],
+      temperature: 0,
+      max_tokens: 4000,
     });
 
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    const responseText = completion.choices[0]?.message?.content || '';
 
     // Parse JSON response
     let lines: ParsedOfferLineCandidate[] = [];
