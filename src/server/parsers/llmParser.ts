@@ -80,6 +80,9 @@ export async function parseOfferWithLLM(
       warnings.push(`Bestand was te groot, alleen eerste ${maxChars} karakters geanalyseerd`);
     }
 
+    console.log(`[LLM Parser] Analyzing ${fileType} with ${textToAnalyze.length} characters`);
+    console.log(`[LLM Parser] First 500 chars:`, textToAnalyze.substring(0, 500));
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages: [
@@ -97,6 +100,7 @@ export async function parseOfferWithLLM(
     });
 
     const responseText = completion.choices[0]?.message?.content || '';
+    console.log(`[LLM Parser] LLM response:`, responseText.substring(0, 1000));
 
     // Parse JSON response
     let lines: ParsedOfferLineCandidate[] = [];
@@ -127,6 +131,9 @@ export async function parseOfferWithLLM(
 
     if (lines.length === 0) {
       warnings.push('Geen offerteregels gevonden in het bestand');
+      console.log(`[LLM Parser] No lines found. Warnings:`, warnings);
+    } else {
+      console.log(`[LLM Parser] Successfully parsed ${lines.length} lines`);
     }
 
     return {

@@ -11,6 +11,7 @@ import { parseOfferWithLLM } from './llmParser';
  */
 export async function parsePdfOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
   try {
+    console.log(`[PDF Parser] Parsing PDF, buffer size: ${fileBuffer.length} bytes`);
     // Dynamic import to avoid issues with ESM/CJS compatibility
     const pdfParse = await import('pdf-parse');
     // @ts-ignore - pdf-parse has complex ESM/CJS exports
@@ -18,8 +19,10 @@ export async function parsePdfOffer(fileBuffer: Buffer): Promise<OfferParseResul
     const data = await parser(fileBuffer);
 
     const rawText = data.text;
+    console.log(`[PDF Parser] Extracted ${rawText.length} characters from ${data.numpages} pages`);
 
     if (!rawText || rawText.trim().length === 0) {
+      console.log('[PDF Parser] No text extracted from PDF');
       return {
         lines: [],
         warnings: ['PDF bevat geen leesbare tekst'],
@@ -44,12 +47,15 @@ export async function parsePdfOffer(fileBuffer: Buffer): Promise<OfferParseResul
  */
 export async function parseDocxOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
   try {
+    console.log(`[DOCX Parser] Parsing DOCX, buffer size: ${fileBuffer.length} bytes`);
     const mammoth = await import('mammoth');
     const result = await mammoth.extractRawText({ buffer: fileBuffer });
 
     const rawText = result.value;
+    console.log(`[DOCX Parser] Extracted ${rawText.length} characters`);
 
     if (!rawText || rawText.trim().length === 0) {
+      console.log('[DOCX Parser] No text extracted from DOCX');
       return {
         lines: [],
         warnings: ['DOCX bevat geen leesbare tekst'],
@@ -84,24 +90,28 @@ export async function parseDocxOffer(fileBuffer: Buffer): Promise<OfferParseResu
  */
 export async function parseXlsxOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
   try {
+    console.log(`[XLSX Parser] Parsing XLSX, buffer size: ${fileBuffer.length} bytes`);
     const XLSX = await import('xlsx');
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
 
     // Get first sheet
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
+      console.log('[XLSX Parser] No sheets found in Excel file');
       return {
         lines: [],
         warnings: ['Excel bestand bevat geen sheets'],
       };
     }
 
+    console.log(`[XLSX Parser] Reading sheet: ${sheetName}`);
     const sheet = workbook.Sheets[sheetName];
 
     // Convert to CSV for easier text processing
     const csvText = XLSX.utils.sheet_to_csv(sheet);
 
     if (!csvText || csvText.trim().length === 0) {
+      console.log('[XLSX Parser] Sheet contains no data');
       return {
         lines: [],
         warnings: ['Excel sheet bevat geen data'],
@@ -110,6 +120,7 @@ export async function parseXlsxOffer(fileBuffer: Buffer): Promise<OfferParseResu
 
     // Also try to convert to JSON for structured data
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    console.log(`[XLSX Parser] Extracted ${jsonData.length} rows, CSV length: ${csvText.length} chars`);
 
     // Build a text representation including both CSV and some structure hints
     let rawText = `Excel sheet: ${sheetName}\n\n`;

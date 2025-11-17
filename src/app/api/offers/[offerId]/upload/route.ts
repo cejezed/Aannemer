@@ -65,9 +65,17 @@ export async function POST(
 
     // Check if parsing found any lines
     if (parseResult.lines.length === 0) {
+      console.log('[Upload] No lines found. Warnings:', parseResult.warnings);
+
+      // Build helpful error message
+      let errorMsg = 'Geen offerteregels gevonden in bestand';
+      if (parseResult.warnings.length > 0) {
+        errorMsg += ': ' + parseResult.warnings.join('; ');
+      }
+
       return NextResponse.json(
         {
-          error: 'Geen offerteregels gevonden in bestand',
+          error: errorMsg,
           warnings: parseResult.warnings,
         },
         { status: 400 }
