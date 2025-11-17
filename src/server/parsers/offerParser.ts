@@ -7,19 +7,37 @@ import { parseOfferWithLLM } from './llmParser';
 
 /**
  * Parse PDF offer file
- * Uses pdf-parse to extract text, then LLM for structuring
+ * Uses pdfjs-dist to extract text, then LLM for structuring
  */
 export async function parsePdfOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
   try {
     console.log(`[PDF Parser] Parsing PDF, buffer size: ${fileBuffer.length} bytes`);
-    // Dynamic import to avoid issues with ESM/CJS compatibility
-    const pdfParse = await import('pdf-parse');
-    // @ts-ignore - pdf-parse has complex ESM/CJS exports
-    const parser = pdfParse.default || pdfParse;
-    const data = await parser(fileBuffer);
 
-    const rawText = data.text;
-    console.log(`[PDF Parser] Extracted ${rawText.length} characters from ${data.numpages} pages`);
+    // Import pdfjs-dist (version 5.x uses different exports)
+    const pdfjsLib = await import('pdfjs-dist');
+
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(fileBuffer),
+      useSystemFonts: true,
+    });
+
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
+    console.log(`[PDF Parser] PDF has ${numPages} pages`);
+
+    // Extract text from all pages
+    let rawText = '';
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      rawText += pageText + '\n\n';
+    }
+
+    console.log(`[PDF Parser] Extracted ${rawText.length} characters from ${numPages} pages`);
 
     if (!rawText || rawText.trim().length === 0) {
       console.log('[PDF Parser] No text extracted from PDF');
