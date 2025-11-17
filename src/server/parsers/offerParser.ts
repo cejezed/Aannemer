@@ -7,37 +7,24 @@ import { parseOfferWithLLM } from './llmParser';
 
 /**
  * Parse PDF offer file
- * Uses pdfjs-dist to extract text, then LLM for structuring
+ * Uses unpdf to extract text, then LLM for structuring
  */
 export async function parsePdfOffer(fileBuffer: Buffer): Promise<OfferParseResult> {
   try {
     console.log(`[PDF Parser] Parsing PDF, buffer size: ${fileBuffer.length} bytes`);
 
-    // Import pdfjs-dist (version 5.x uses different exports)
-    const pdfjsLib = await import('pdfjs-dist');
+    // Import unpdf - a server-friendly PDF parser
+    const { extractText } = await import('unpdf');
 
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(fileBuffer),
-      useSystemFonts: true,
-    });
+    // Extract text from PDF
+    const result = await extractText(fileBuffer);
 
-    const pdf = await loadingTask.promise;
-    const numPages = pdf.numPages;
-    console.log(`[PDF Parser] PDF has ${numPages} pages`);
+    // unpdf returns text as array of strings (one per page) or a single string
+    const rawText = Array.isArray(result.text)
+      ? result.text.join('\n\n')
+      : result.text;
 
-    // Extract text from all pages
-    let rawText = '';
-    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      rawText += pageText + '\n\n';
-    }
-
-    console.log(`[PDF Parser] Extracted ${rawText.length} characters from ${numPages} pages`);
+    console.log(`[PDF Parser] Extracted ${rawText.length} characters from ${result.totalPages} pages`);
 
     if (!rawText || rawText.trim().length === 0) {
       console.log('[PDF Parser] No text extracted from PDF');
